@@ -109,25 +109,26 @@ app.put("/users/:userId", async (req, res) => {
 
 // Delete user
 app.get("/users/:userId", async (req, res) => {
-  const params = {
-    TableName: USERS_TABLE,
-    Key: {
-      userId: req.params.userId,
-    },
-  };
+  const { userId } = req.params;
 
-  try {
-    await dynamoDbClient.delete(params).promise();
-    res.json({ message: `User with userId: ${userId} has been deleted` });
-  } catch (error) {
-    res.status(500).json({ error: "Could not retrieve user" });
-  }
-})
+    if (!userId) {
+        res.status(400).json({ error: 'userId is required' });
+        return;
+    }
 
-app.use((req, res, next) => {
-  return res.status(404).json({
-    error: "Not Found",
-  });
+    const params = {
+        TableName: USERS_TABLE,
+        Key: {
+          userId: req.params.userId,
+        }
+    };
+
+    try {
+        await dynamoDbClient.delete(params).promise();
+        res.json({ message: 'User deleted' });
+    } catch (error) {
+        res.status(400).json({ error: 'Could not delete user' });
+    }
 });
 
 
