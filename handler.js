@@ -32,7 +32,6 @@ app.post("/users", async (req, res) => {
     await dynamoDbClient.put(params).promise();
     res.json({ userId, name });
   } catch (error) {
-    console.log(error);
     res.status(500).json({ error: "Could not create user" });
   }
 });
@@ -47,7 +46,6 @@ app.get("/users", async (req, res) => {
     const users = await dynamoDbClient.scan(params).promise();
     res.json(users.Items)
   } catch (error) {
-    console.log(error);
     res.status(500).json({ error: "Could not find any users." });
   }
 });
@@ -72,43 +70,40 @@ app.get("/users/:userId", async (req, res) => {
         .json({ error: 'Could not find user with provided "userId"' });
     }
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: "Could not retreive user" });
+    res.status(500).json({ error: "Could not retrieve user" });
   }
 });
 
 // Update user
 app.put("/users/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const { name } = req.body;
+
+  if (!userId || !name) {
+    res.status(400).json({ error: 'userId and name are required' });
+    return;
+  }
+
   const params = {
     TableName: USERS_TABLE,
     Key: {
       userId: req.params.userId,
     },
-    UpdateExpression: 'set #userId = :userId, #name = :name',
+    UpdateExpression: 'set #name = :n',
     ExpressionAttributeNames: {
-      '#userId': 'userId',
       '#name': 'name'
     },
     ExpressionAttributeValues: {
-      ':userId': req.body.userId,
-      ':name': req.body.name
+      ':n': name
     },
-    ReturnValues: 'ALL_NEW'
+    ReturnValues: 'UPDATED_NEW'
   };
 
   try {
-    const { Item } = await dynamoDbClient.update(params).promise();
-    if (Item) {
-      const { userId, name } = Item;
-      res.json({ userId, name });
-    } else {
-      res
-        .status(404)
-        .json({ error: 'Could not find user with provided "userId"' });
-    }
+    const result = await dynamoDbClient.update(params).promise();
+    res.json({ message: 'User updated', user: result.Attributes });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: "Could not retreive user" });
+    res.status(500).json({ error: "Could not retrieve user" });
   }
 })
 
@@ -125,8 +120,7 @@ app.get("/users/:userId", async (req, res) => {
     await dynamoDbClient.delete(params).promise();
     res.json({ message: `User with userId: ${userId} has been deleted` });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: "Could not retreive user" });
+    res.status(500).json({ error: "Could not retrieve user" });
   }
 })
 
